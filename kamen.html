@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>RPS Arena</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --accent-rock:#7c9cbf;
+  --accent-paper:#e8c07a;
+  --accent-scissors:#e17a72;
+  --accent-a:#8b7bff;
+  --accent-b:#42e8d0;
+  --win:#42e8b0;
+  --lose:#ff5f7a;
+  --draw:#f3c74e;
+  --radius:22px;
+  --shadow-soft:0 8px 32px rgba(0,0,0,.28);
+}
+[data-theme="dark"]{
+  --bg1:#0e1024;
+  --bg2:#191b3a;
+  --bg3:#241542;
+  --text:#f1eefc;
+  --text-dim:#a6a3c9;
+  --glass-bg:rgba(255,255,255,0.06);
+  --glass-border:rgba(255,255,255,0.14);
+  --glass-bg-strong:rgba(255,255,255,0.10);
+}
+[data-theme="light"]{
+  --bg1:#dfe9ff;
+  --bg2:#f3e8ff;
+  --bg3:#ffe9f2;
+  --text:#211f36;
+  --text-dim:#635f80;
+  --glass-bg:rgba(255,255,255,0.45);
+  --glass-border:rgba(255,255,255,0.65);
+  --glass-bg-strong:rgba(255,255,255,0.65);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;}
+body{
+  font-family:'Inter',sans-serif;
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
+  position:relative;
+  transition:color .3s ease;
+}
+.bg{
+  position:fixed; inset:0; z-index:-2;
+  background:linear-gradient(135deg,var(--bg1),var(--bg2) 50%,var(--bg3));
+  transition:background 0.5s ease;
+}
+.blob{
+  position:fixed; border-radius:50%; filter:blur(70px); opacity:.55; z-index:-1;
+  animation:drift 22s ease-in-out infinite alternate;
+}
+.blob1{width:420px;height:420px; background:var(--accent-a); top:-120px; left:-100px; animation-duration:26s;}
+.blob2{width:360px;height:360px; background:var(--accent-b); bottom:-100px; right:-80px; animation-duration:30s; animation-delay:-6s;}
+.blob3{width:300px;height:300px; background:var(--accent-scissors); top:40%; right:10%; animation-duration:34s; animation-delay:-12s; opacity:.35;}
+@keyframes drift{
+  0%{transform:translate(0,0) scale(1);}
+  50%{transform:translate(40px,30px) scale(1.08);}
+  100%{transform:translate(-30px,10px) scale(0.96);}
+}
+@media (prefers-reduced-motion: reduce){
+  .blob{animation:none;}
+}
+h1,h2,h3,.display{font-family:'Space Grotesk',sans-serif;}
+.wrap{
+  max-width:1180px; margin:0 auto; padding:18px 16px 60px;
+}
+header.top{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  flex-wrap:wrap; margin-bottom:18px;
+}
+.brand{display:flex; align-items:center; gap:10px;}
+.brand .logo{font-size:30px;}
+.brand h1{font-size:22px; margin:0; letter-spacing:.3px;}
+.brand .sub{font-size:12px; color:var(--text-dim); margin-top:-2px;}
+.top-actions{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+.icon-btn{
+  width:40px; height:40px; border-radius:14px; border:1px solid var(--glass-border);
+  background:var(--glass-bg); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+  color:var(--text); cursor:pointer; font-size:17px; display:flex; align-items:center; justify-content:center;
+  transition:transform .15s ease, background .2s ease; box-shadow:var(--shadow-soft);
+}
+.icon-btn:hover{transform:translateY(-2px); background:var(--glass-bg-strong);}
+.icon-btn:active{transform:translateY(0) scale(.94);}
+select.lang{
+  border-radius:14px; border:1px solid var(--glass-border); background:var(--glass-bg);
+  color:var(--text); padding:9px 10px; font-family:inherit; font-size:13px; backdrop-filter:blur(16px);
+  cursor:pointer;
+}
+.player-chip{
+  display:flex; align-items:center; gap:8px; border:1px solid var(--glass-border);
+  background:var(--glass-bg); backdrop-filter:blur(16px); border-radius:16px; padding:6px 12px 6px 6px;
+  cursor:pointer; box-shadow:var(--shadow-soft);
+}
+.player-chip .av{width:30px;height:30px;border-radius:50%; display:flex;align-items:center;justify-content:center; font-size:17px; background:var(--glass-bg-strong);}
+.player-chip .nm{font-size:13px; font-weight:600;}
+
+.glass{
+  background:var(--glass-bg); border:1px solid var(--glass-border);
+  border-radius:var(--radius); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px);
+  box-shadow:var(--shadow-soft);
+}
+.grid{display:grid; grid-template-columns:1fr 340px; gap:20px;}
+@media (max-width:880px){ .grid{grid-template-columns:1fr;} }
+
+/* Mode bar */
+.modebar{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;}
+.mode-btn{
+  padding:8px 14px; border-radius:14px; border:1px solid var(--glass-border);
+  background:var(--glass-bg); color:var(--text-dim); font-size:12.5px; font-weight:600;
+  cursor:pointer; backdrop-filter:blur(14px); transition:all .15s ease;
+}
+.mode-btn.active{ background:linear-gradient(135deg,var(--accent-a),var(--accent-b)); color:#0e1024; border-color:transparent;}
+
+/* Game panel */
+.panel{padding:26px; margin-bottom:18px; position:relative; overflow:hidden;}
+.score-row{display:flex; align-items:center; justify-content:center; gap:26px; margin-bottom:6px; flex-wrap:wrap;}
+.score-box{text-align:center; min-width:90px;}
+.score-box .num{font-family:'Space Grotesk'; font-size:38px; font-weight:700; line-height:1;}
+.score-box .lbl{font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; margin-top:4px;}
+.vs{font-size:13px; color:var(--text-dim); font-weight:600;}
+.target-note{ text-align:center; font-size:12px; color:var(--text-dim); margin-bottom:6px;}
+.timer-note{text-align:center; font-size:26px; font-family:'Space Grotesk'; font-weight:700; margin-bottom:6px; color:var(--accent-b);}
+
+.arena{
+  display:flex; align-items:center; justify-content:center; gap:40px; margin:26px 0; flex-wrap:wrap;
+}
+.combatant{ text-align:center; }
+.stage{
+  width:120px; height:120px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-size:56px; background:var(--glass-bg-strong); border:2px solid var(--glass-border);
+  box-shadow:var(--shadow-soft); position:relative;
+}
+.stage.thinking{animation:pulseThink .5s ease-in-out infinite alternate;}
+@keyframes pulseThink{ from{transform:scale(1);} to{transform:scale(1.06);} }
+.stage.reveal{animation:popIn .35s cubic-bezier(.2,1.4,.4,1);}
+@keyframes popIn{ 0%{transform:scale(.4) rotate(-15deg); opacity:0;} 100%{transform:scale(1) rotate(0); opacity:1;} }
+.stage.winner-glow{box-shadow:0 0 0 4px var(--win), 0 0 30px var(--win);}
+.stage.loser-dim{opacity:.45; filter:grayscale(.4);}
+.combatant .cname{margin-top:10px; font-size:12.5px; color:var(--text-dim); font-weight:600;}
+.cross{font-size:22px; color:var(--text-dim); font-weight:700;}
+
+.countdown{ text-align:center; font-family:'Space Grotesk'; font-size:64px; font-weight:700;
+  margin:10px 0; color:var(--accent-a); }
+
+.result-banner{
+  text-align:center; font-family:'Space Grotesk'; font-size:22px; font-weight:700; margin:14px 0 8px;
+  min-height:32px; opacity:0; transform:translateY(8px); transition:all .35s ease;
+}
+.result-banner.show{opacity:1; transform:translateY(0);}
+.result-banner.win{color:var(--win);}
+.result-banner.lose{color:var(--lose);}
+.result-banner.draw{color:var(--draw);}
+
+.choices{display:flex; gap:16px; justify-content:center; margin-top:20px; flex-wrap:wrap;}
+.choice-btn{
+  width:88px; height:88px; border-radius:26px; border:1px solid var(--glass-border);
+  background:var(--glass-bg); font-size:38px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:transform .15s ease, box-shadow .2s ease, background .2s ease; backdrop-filter:blur(14px);
+  position:relative;
+}
+.choice-btn:hover{transform:translateY(-4px);}
+.choice-btn:active{transform:translateY(0) scale(.93);}
+.choice-btn.rock.selected{box-shadow:0 0 0 3px var(--accent-rock), 0 0 24px var(--accent-rock);}
+.choice-btn.paper.selected{box-shadow:0 0 0 3px var(--accent-paper), 0 0 24px var(--accent-paper);}
+.choice-btn.scissors.selected{box-shadow:0 0 0 3px var(--accent-scissors), 0 0 24px var(--accent-scissors);}
+.choice-btn .key-hint{position:absolute; bottom:4px; right:8px; font-size:9px; color:var(--text-dim); font-family:'Space Grotesk';}
+.choice-btn:disabled{opacity:.45; cursor:not-allowed;}
+.hint-row{text-align:center; font-size:11.5px; color:var(--text-dim); margin-top:10px;}
+
+.controls-row{display:flex; gap:10px; justify-content:center; margin-top:20px; flex-wrap:wrap;}
+.pill-btn{
+  padding:10px 18px; border-radius:16px; border:1px solid var(--glass-border);
+  background:var(--glass-bg); color:var(--text); font-weight:600; font-size:13px; cursor:pointer;
+  backdrop-filter:blur(14px); transition:all .15s ease;
+}
+.pill-btn:hover{transform:translateY(-2px); background:var(--glass-bg-strong);}
+.pill-btn.primary{background:linear-gradient(135deg,var(--accent-a),var(--accent-b)); color:#0e1024; border-color:transparent;}
+.pill-btn.danger{color:var(--lose);}
+
+.shake{animation:shakeScreen .4s ease;}
+@keyframes shakeScreen{
+  10%,90%{transform:translateX(-2px);} 20%,80%{transform:translateX(4px);}
+  30%,50%,70%{transform:translateX(-8px);} 40%,60%{transform:translateX(8px);}
+}
+
+/* Side panels */
+.side-card{padding:18px 18px; margin-bottom:16px;}
+.side-card h3{margin:0 0 12px; font-size:14px; display:flex; align-items:center; gap:6px;}
+.stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+.stat-item{background:var(--glass-bg-strong); border-radius:14px; padding:10px 12px;}
+.stat-item .v{font-family:'Space Grotesk'; font-size:19px; font-weight:700;}
+.stat-item .k{font-size:10.5px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.5px; margin-top:2px;}
+.progress-bar{height:8px; border-radius:8px; background:var(--glass-bg-strong); overflow:hidden; margin-top:4px;}
+.progress-bar > div{height:100%; background:linear-gradient(90deg,var(--accent-a),var(--accent-b)); border-radius:8px; transition:width .4s ease;}
+.mini-bars{display:flex; flex-direction:column; gap:8px; margin-top:8px;}
+.mini-bar-row{display:flex; align-items:center; gap:8px; font-size:12px;}
+.mini-bar-row .ico{width:20px; text-align:center;}
+.mini-bar-track{flex:1; height:10px; border-radius:6px; background:var(--glass-bg-strong); overflow:hidden;}
+.mini-bar-track > div{height:100%; border-radius:6px;}
+.mini-bar-row .pct{width:34px; text-align:right; color:var(--text-dim); font-size:11px;}
+
+.history-list{display:flex; flex-direction:column; gap:6px; max-height:220px; overflow-y:auto; padding-right:4px;}
+.history-list::-webkit-scrollbar{width:5px;}
+.history-list::-webkit-scrollbar-thumb{background:var(--glass-border); border-radius:5px;}
+.hist-item{display:flex; align-items:center; justify-content:space-between; background:var(--glass-bg-strong); border-radius:12px; padding:7px 10px; font-size:12px;}
+.hist-item .em{font-size:15px;}
+.hist-badge{padding:2px 8px; border-radius:8px; font-size:10.5px; font-weight:700;}
+.hist-badge.win{background:rgba(66,232,176,.18); color:var(--win);}
+.hist-badge.lose{background:rgba(255,95,122,.18); color:var(--lose);}
+.hist-badge.draw{background:rgba(243,199,78,.18); color:var(--draw);}
+
+.ach-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+.ach{
+  background:var(--glass-bg-strong); border-radius:14px; padding:10px; text-align:center; font-size:11px;
+  border:1px solid transparent; opacity:.4; filter:grayscale(1);
+}
+.ach.unlocked{opacity:1; filter:none; border-color:var(--accent-a); box-shadow:0 0 14px rgba(139,123,255,.25);}
+.ach .ico{font-size:22px; display:block; margin-bottom:4px;}
+
+.settings-body label{display:block; font-size:12px; color:var(--text-dim); margin:12px 0 6px;}
+.settings-body select, .settings-body input[type=text]{
+  width:100%; padding:9px 10px; border-radius:12px; border:1px solid var(--glass-border);
+  background:var(--glass-bg-strong); color:var(--text); font-family:inherit; font-size:13px;
+}
+.toggle-row{display:flex; align-items:center; justify-content:space-between; margin:12px 0;}
+.switch{position:relative; width:42px; height:24px;}
+.switch input{opacity:0; width:0; height:0;}
+.slider-el{position:absolute; cursor:pointer; inset:0; background:var(--glass-bg-strong); border-radius:24px; transition:.2s; border:1px solid var(--glass-border);}
+.slider-el:before{position:absolute; content:""; height:18px; width:18px; left:2px; top:2px; background:var(--text-dim); border-radius:50%; transition:.2s;}
+.switch input:checked + .slider-el{background:linear-gradient(135deg,var(--accent-a),var(--accent-b));}
+.switch input:checked + .slider-el:before{transform:translateX(18px); background:#fff;}
+.avatar-grid{display:flex; flex-wrap:wrap; gap:8px; margin-top:6px;}
+.avatar-opt{width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; background:var(--glass-bg-strong); border:2px solid transparent; cursor:pointer;}
+.avatar-opt.sel{border-color:var(--accent-a);}
+
+.modal-overlay{
+  position:fixed; inset:0; background:rgba(5,5,15,.55); backdrop-filter:blur(4px);
+  display:flex; align-items:center; justify-content:center; z-index:50; padding:20px; opacity:0; pointer-events:none; transition:opacity .2s ease;
+}
+.modal-overlay.open{opacity:1; pointer-events:auto;}
+.modal{width:100%; max-width:420px; padding:24px; max-height:82vh; overflow-y:auto;}
+.modal h2{margin-top:0; font-size:19px; display:flex; align-items:center; justify-content:space-between;}
+.modal .close-x{cursor:pointer; font-size:20px; color:var(--text-dim); background:none; border:none;}
+.modal ul{padding-left:18px; font-size:13.5px; line-height:1.7; color:var(--text-dim);}
+.modal p{font-size:13.5px; line-height:1.6; color:var(--text-dim);}
+
+.chart-canvas{width:100%; height:120px; display:block;}
+canvas.confetti-canvas{position:fixed; inset:0; z-index:60; pointer-events:none;}
+.toast{
+  position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(20px); opacity:0;
+  background:var(--glass-bg-strong); border:1px solid var(--glass-border); backdrop-filter:blur(16px);
+  padding:10px 18px; border-radius:14px; font-size:13px; z-index:70; transition:all .3s ease; box-shadow:var(--shadow-soft);
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+.tip-banner{
+  display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-dim); padding:10px 14px;
+  margin-bottom:14px;
+}
+footer.credit{text-align:center; font-size:11px; color:var(--text-dim); margin-top:20px; opacity:.6;}
+</style>
+</head>
+<body data-theme="dark">
+<div class="bg"></div>
+<div class="blob blob1"></div>
+<div class="blob blob2"></div>
+<div class="blob blob3"></div>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="logo">🪨📄✂️</div>
+      <div>
+        <h1 data-i18n="title">RPS Arena</h1>
+        <div class="sub" data-i18n="subtitle">Камень · Ножницы · Бумага</div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <div class="player-chip" id="playerChip" title="Профиль">
+        <span class="av" id="avatarDisplay">🙂</span>
+        <span class="nm" id="nameDisplay">Игрок</span>
+      </div>
+      <select class="lang" id="langSelect">
+        <option value="ru">RU</option>
+        <option value="en">EN</option>
+        <option value="uz">UZ</option>
+      </select>
+      <button class="icon-btn" id="themeToggle" title="Тема">🌙</button>
+      <button class="icon-btn" id="soundToggle" title="Звук">🔊</button>
+      <button class="icon-btn" id="fullscreenToggle" title="Во весь экран">⛶</button>
+      <button class="icon-btn" id="settingsBtn" title="Настройки">⚙️</button>
+      <button class="icon-btn" id="rulesBtn" title="Правила">❓</button>
+    </div>
+  </header>
+
+  <div class="modebar" id="modeBar"></div>
+
+  <div class="grid">
+    <div>
+      <div class="glass panel" id="gamePanel">
+        <div class="score-row">
+          <div class="score-box">
+            <div class="num" id="playerScore">0</div>
+            <div class="lbl" id="playerScoreLbl" data-i18n="you">ИГРОК</div>
+          </div>
+          <div class="vs">VS</div>
+          <div class="score-box">
+            <div class="num" id="computerScore">0</div>
+            <div class="lbl" data-i18n="cpu">КОМПЬЮТЕР</div>
+          </div>
+        </div>
+        <div class="target-note" id="modeNote"></div>
+        <div class="timer-note" id="timerNote" style="display:none;"></div>
+
+        <div class="arena">
+          <div class="combatant">
+            <div class="stage" id="playerStage">❔</div>
+            <div class="cname" id="playerStageName" data-i18n="you">ИГРОК</div>
+          </div>
+          <div class="cross">⚡</div>
+          <div class="combatant">
+            <div class="stage" id="computerStage">❔</div>
+            <div class="cname" data-i18n="cpu">КОМПЬЮТЕР</div>
+          </div>
+        </div>
+
+        <div class="countdown" id="countdown" style="display:none;"></div>
+        <div class="result-banner" id="resultBanner"></div>
+
+        <div class="choices" id="choicesRow">
+          <button class="choice-btn rock" data-choice="rock">🪨<span class="key-hint">1</span></button>
+          <button class="choice-btn paper" data-choice="paper">📄<span class="key-hint">2</span></button>
+          <button class="choice-btn scissors" data-choice="scissors">✂️<span class="key-hint">3</span></button>
+        </div>
+        <div class="hint-row" id="hintRow" data-i18n="keyhint">Клавиши: 1 — 🪨, 2 — 📄, 3 — ✂️</div>
+
+        <div class="controls-row">
+          <button class="pill-btn primary" id="newGameBtn" data-i18n="newgame">Новая игра</button>
+          <button class="pill-btn" id="pauseBtn" data-i18n="pause">⏸ Пауза</button>
+          <button class="pill-btn" id="shareBtn" data-i18n="share">📤 Поделиться</button>
+          <button class="pill-btn danger" id="resetStatsBtn" data-i18n="resetstats">Сбросить статистику</button>
+        </div>
+      </div>
+
+      <div class="glass side-card">
+        <h3><span>🧠</span><span data-i18n="aititle">Сложность ИИ</span></h3>
+        <div class="modebar" id="diffBar"></div>
+      </div>
+
+      <div class="glass side-card">
+        <h3><span>📈</span><span data-i18n="chart">Победы и поражения</span></h3>
+        <canvas class="chart-canvas" id="wlChart"></canvas>
+      </div>
+    </div>
+
+    <div>
+      <div class="glass side-card">
+        <h3><span>📊</span><span data-i18n="stats">Статистика</span></h3>
+        <div class="stat-grid">
+          <div class="stat-item"><div class="v" id="statTotal">0</div><div class="k" data-i18n="total">Всего игр</div></div>
+          <div class="stat-item"><div class="v" id="statWinPct">0%</div><div class="k" data-i18n="winpct">Процент побед</div></div>
+          <div class="stat-item"><div class="v" id="statStreak">0</div><div class="k" data-i18n="streak">Серия побед</div></div>
+          <div class="stat-item"><div class="v" id="statLoseStreak">0</div><div class="k" data-i18n="losestreak">Серия поражений</div></div>
+          <div class="stat-item"><div class="v" id="statBest">0</div><div class="k" data-i18n="best">Лучший рекорд</div></div>
+          <div class="stat-item"><div class="v" id="statDraws">0</div><div class="k" data-i18n="draws">Ничьи</div></div>
+          <div class="stat-item"><div class="v" id="statAvgTime">0s</div><div class="k" data-i18n="avgtime">Ср. время</div></div>
+          <div class="stat-item"><div class="v" id="statFav">—</div><div class="k" data-i18n="favmove">Любимый ход</div></div>
+        </div>
+        <div style="margin-top:14px;">
+          <div class="k" style="font-size:10.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;" data-i18n="playermoves">Ходы игрока</div>
+          <div class="mini-bars" id="playerMoveBars"></div>
+          <div class="k" style="font-size:10.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;margin-top:10px;" data-i18n="cpumoves">Ходы компьютера</div>
+          <div class="mini-bars" id="cpuMoveBars"></div>
+        </div>
+      </div>
+
+      <div class="glass side-card">
+        <h3><span>🏅</span><span data-i18n="achievements">Достижения</span></h3>
+        <div class="ach-grid" id="achGrid"></div>
+      </div>
+
+      <div class="glass side-card">
+        <h3><span>🕘</span><span data-i18n="history">История игр</span></h3>
+        <div class="history-list" id="historyList"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="credit">RPS Arena · made with Claude</footer>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settingsOverlay">
+  <div class="glass modal">
+    <h2><span data-i18n="settingstitle">Настройки</span><button class="close-x" data-close="settingsOverlay">✕</button></h2>
+    <div class="settings-body">
+      <label data-i18n="yourname">Ваше имя</label>
+      <input type="text" id="nameInput" maxlength="16" placeholder="Игрок">
+      <label data-i18n="avatar">Аватар</label>
+      <div class="avatar-grid" id="avatarGrid"></div>
+      <div class="toggle-row">
+        <span data-i18n="darktheme">Тёмная тема</span>
+        <label class="switch"><input type="checkbox" id="themeSwitch"><span class="slider-el"></span></label>
+      </div>
+      <div class="toggle-row">
+        <span data-i18n="soundon">Звук</span>
+        <label class="switch"><input type="checkbox" id="soundSwitch" checked><span class="slider-el"></span></label>
+      </div>
+      <div class="toggle-row">
+        <span data-i18n="musicon">Фоновая музыка</span>
+        <label class="switch"><input type="checkbox" id="musicSwitch"><span class="slider-el"></span></label>
+      </div>
+      <div class="toggle-row">
+        <span data-i18n="tipsToggle">Подсказки для новичков</span>
+        <label class="switch"><input type="checkbox" id="tipsSwitch" checked><span class="slider-el"></span></label>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Rules Modal -->
+<div class="modal-overlay" id="rulesOverlay">
+  <div class="glass modal">
+    <h2><span data-i18n="rulestitle">Правила игры</span><button class="close-x" data-close="rulesOverlay">✕</button></h2>
+    <p data-i18n="rulesText1">🪨 Камень побеждает ✂️ Ножницы. ✂️ Ножницы побеждают 📄 Бумагу. 📄 Бумага побеждает 🪨 Камень.</p>
+    <p data-i18n="rulesText2">Выберите режим игры и сложность ИИ вверху экрана. В режиме "До N побед" игра заканчивается, когда один из игроков наберёт нужное число побед. В режиме "На время" играйте столько раундов, сколько успеете за отведённое время.</p>
+    <p data-i18n="rulesText3">Используйте клавиши 1, 2, 3 для быстрого выбора хода.</p>
+  </div>
+</div>
+
+<!-- Achievement toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------------- i18n ---------------- */
+const I18N = {
+  ru:{
+    title:"RPS Arena", subtitle:"Камень · Ножницы · Бумага", you:"ИГРОК", cpu:"КОМПЬЮТЕР",
+    newgame:"🔄 Новая игра", pause:"⏸ Пауза", resume:"▶ Продолжить", share:"📤 Поделиться", resetstats:"Сбросить статистику",
+    keyhint:"Клавиши: 1 — 🪨, 2 — 📄, 3 — ✂️", aititle:"Сложность ИИ", chart:"Победы и поражения",
+    stats:"Статистика", total:"Всего игр", winpct:"Процент побед", streak:"Серия побед", losestreak:"Серия поражений",
+    best:"Лучший рекорд", draws:"Ничьи", avgtime:"Ср. время", favmove:"Любимый ход",
+    playermoves:"Ходы игрока", cpumoves:"Ходы компьютера", achievements:"Достижения", history:"История игр",
+    settingstitle:"Настройки", yourname:"Ваше имя", avatar:"Аватар", darktheme:"Тёмная тема", soundon:"Звук",
+    musicon:"Фоновая музыка", tipsToggle:"Подсказки для новичков",
+    rulestitle:"Правила игры",
+    rulesText1:"🪨 Камень побеждает ✂️ Ножницы. ✂️ Ножницы побеждают 📄 Бумагу. 📄 Бумага побеждает 🪨 Камень.",
+    rulesText2:"Выберите режим игры и сложность ИИ вверху экрана. В режиме «До N побед» игра заканчивается, когда один из игроков наберёт нужное число побед. В режиме «На время» играйте столько раундов, сколько успеете за отведённое время.",
+    rulesText3:"Используйте клавиши 1, 2, 3 для быстрого выбора хода.",
+    modes:{classic:"Классический", bo3:"До 3 побед", bo5:"До 5 побед", bo10:"До 10 побед", timed30:"На время 30с", timed60:"На время 60с", endless:"Бесконечный", twoplayer:"2 игрока"},
+    diffs:{easy:"Лёгкий", medium:"Средний", hard:"Сложный", expert:"Эксперт"},
+    win:"🎉 Победа!", lose:"😔 Поражение", draw:"🤝 Ничья",
+    p1turn:"Игрок 1: выберите ход (клавиши 1/2/3)", p2turn:"Игрок 2: выберите ход (кнопки)",
+    thinking:"Думаю…", tip1:"Совет: следите за своей серией побед!", tip2:"Совет: попробуйте сложность «Эксперт» — она анализирует ваши ходы.",
+    tip3:"Совет: в режиме «На время» старайтесь не тратить время на раздумья.", paused:"⏸ Игра на паузе",
+    modeEndBo:"Игра окончена! Победитель матча: ", modeEndTimed:"Время вышло!",
+    achNames:{first:"Первая победа", streak5:"5 побед подряд", streak10:"10 побед подряд", games100:"100 игр", beat50:"50 побед над ПК"},
+    copied:"Результат скопирован в буфер обмена!", reset_done:"Статистика сброшена",
+    favNone:"—"
+  },
+  en:{
+    title:"RPS Arena", subtitle:"Rock · Paper · Scissors", you:"PLAYER", cpu:"COMPUTER",
+    newgame:"🔄 New Game", pause:"⏸ Pause", resume:"▶ Resume", share:"📤 Share", resetstats:"Reset Stats",
+    keyhint:"Keys: 1 — 🪨, 2 — 📄, 3 — ✂️", aititle:"AI Difficulty", chart:"Wins & Losses",
+    stats:"Statistics", total:"Games played", winpct:"Win rate", streak:"Win streak", losestreak:"Lose streak",
+    best:"Best streak", draws:"Draws", avgtime:"Avg. time", favmove:"Favorite move",
+    playermoves:"Player moves", cpumoves:"Computer moves", achievements:"Achievements", history:"Game History",
+    settingstitle:"Settings", yourname:"Your name", avatar:"Avatar", darktheme:"Dark theme", soundon:"Sound",
+    musicon:"Background music", tipsToggle:"Beginner tips",
+    rulestitle:"Rules",
+    rulesText1:"🪨 Rock beats ✂️ Scissors. ✂️ Scissors beats 📄 Paper. 📄 Paper beats 🪨 Rock.",
+    rulesText2:"Pick a game mode and AI difficulty at the top. In “First to N wins” the game ends once a side reaches that score. In “Timed” mode, play as many rounds as you can before time runs out.",
+    rulesText3:"Use keys 1, 2, 3 to pick your move quickly.",
+    modes:{classic:"Classic", bo3:"First to 3", bo5:"First to 5", bo10:"First to 10", timed30:"Timed 30s", timed60:"Timed 60s", endless:"Endless", twoplayer:"2 Players"},
+    diffs:{easy:"Easy", medium:"Medium", hard:"Hard", expert:"Expert"},
+    win:"🎉 You win!", lose:"😔 You lose", draw:"🤝 Draw",
+    p1turn:"Player 1: choose (keys 1/2/3)", p2turn:"Player 2: choose (buttons)",
+    thinking:"Thinking…", tip1:"Tip: keep an eye on your win streak!", tip2:"Tip: try Expert difficulty — it studies your moves.",
+    tip3:"Tip: in Timed mode, don't overthink each round.", paused:"⏸ Game paused",
+    modeEndBo:"Match over! Winner: ", modeEndTimed:"Time's up!",
+    achNames:{first:"First win", streak5:"5-win streak", streak10:"10-win streak", games100:"100 games", beat50:"Beat CPU 50 times"},
+    copied:"Result copied to clipboard!", reset_done:"Stats reset",
+    favNone:"—"
+  },
+  uz:{
+    title:"RPS Arena", subtitle:"Tosh · Qaychi · Qog'oz", you:"O'YINCHI", cpu:"KOMPYUTER",
+    newgame:"🔄 Yangi o'yin", pause:"⏸ Pauza", resume:"▶ Davom etish", share:"📤 Ulashish", resetstats:"Statistikani tozalash",
+    keyhint:"Tugmalar: 1 — 🪨, 2 — 📄, 3 — ✂️", aititle:"Sun'iy intellekt darajasi", chart:"G'alabalar va mag'lubiyatlar",
+    stats:"Statistika", total:"Jami o'yinlar", winpct:"G'alaba foizi", streak:"G'alaba seriyasi", losestreak:"Mag'lubiyat seriyasi",
+    best:"Eng yaxshi rekord", draws:"Durrang", avgtime:"O'rtacha vaqt", favmove:"Sevimli harakat",
+    playermoves:"O'yinchi harakatlari", cpumoves:"Kompyuter harakatlari", achievements:"Yutuqlar", history:"O'yinlar tarixi",
+    settingstitle:"Sozlamalar", yourname:"Ismingiz", avatar:"Avatar", darktheme:"Tungi mavzu", soundon:"Ovoz",
+    musicon:"Fon musiqasi", tipsToggle:"Boshlovchilar uchun maslahatlar",
+    rulestitle:"O'yin qoidalari",
+    rulesText1:"🪨 Tosh ✂️ Qaychini yutadi. ✂️ Qaychi 📄 Qog'ozni yutadi. 📄 Qog'oz 🪨 Toshni yutadi.",
+    rulesText2:"Yuqorida o'yin rejimi va AI darajasini tanlang. «N g'alabagacha» rejimida kimdir kerakli ballga yetganda o'yin tugaydi. «Vaqt bo'yicha» rejimida vaqt tugaguncha imkoncha ko'p o'ynang.",
+    rulesText3:"Tezkor tanlash uchun 1, 2, 3 tugmalaridan foydalaning.",
+    modes:{classic:"Klassik", bo3:"3 g'alabagacha", bo5:"5 g'alabagacha", bo10:"10 g'alabagacha", timed30:"30s vaqt bo'yicha", timed60:"60s vaqt bo'yicha", endless:"Cheksiz", twoplayer:"2 o'yinchi"},
+    diffs:{easy:"Oson", medium:"O'rta", hard:"Qiyin", expert:"Ekspert"},
+    win:"🎉 G'alaba!", lose:"😔 Mag'lubiyat", draw:"🤝 Durrang",
+    p1turn:"1-o'yinchi: tanlang (1/2/3 tugmalari)", p2turn:"2-o'yinchi: tanlang (tugmalar)",
+    thinking:"O'ylanmoqda…", tip1:"Maslahat: g'alaba seriyangizni kuzatib boring!", tip2:"Maslahat: «Ekspert» darajasini sinab ko'ring — u harakatlaringizni tahlil qiladi.",
+    tip3:"Maslahat: «Vaqt bo'yicha» rejimida uzoq o'ylamang.", paused:"⏸ O'yin pauzada",
+    modeEndBo:"O'yin tugadi! G'olib: ", modeEndTimed:"Vaqt tugadi!",
+    achNames:{first:"Birinchi g'alaba", streak5:"5 ta ketma-ket g'alaba", streak10:"10 ta ketma-ket g'alaba", games100:"100 o'yin", beat50:"Kompyuterni 50 marta yutish"},
+    copied:"Natija buferga nusxalandi!", reset_done:"Statistika tozalandi",
+    favNone:"—"
+  }
+};
+let lang = 'ru';
+function t(key){
+  const parts = key.split('.');
+  let v = I18N[lang];
+  for(const p of parts){ v = v && v[p]; }
+  return v !== undefined ? v : key;
+}
+function applyStaticI18n(){
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const k = el.getAttribute('data-i18n');
+    const val = t(k);
+    if(typeof val === 'string') el.textContent = val;
+  });
+  document.getElementById('playerStageName').textContent = t('you');
+  document.getElementById('playerScoreLbl').textContent = t('you');
+  renderModeBar(); renderDiffBar(); refreshUI();
+}
+
+/* ---------------- Storage helpers ---------------- */
+const DEFAULT_STATS = {
+  playerScore:0, computerScore:0, draws:0, total:0,
+  currentStreak:0, currentLoseStreak:0, bestStreak:0,
+  playerMoves:{rock:0,paper:0,scissors:0}, cpuMoves:{rock:0,paper:0,scissors:0},
+  wlSeries:[], // 1 win, 0 loss, .5 draw (last 20)
+  totalTimeMs:0, roundsTimed:0
+};
+let stats = JSON.parse(JSON.stringify(DEFAULT_STATS));
+let history = []; // {p, c, result, ts}
+let achievements = { first:false, streak5:false, streak10:false, games100:false, beat50:false };
+let settings = { theme:'dark', sound:true, music:false, tips:true, name:'Игрок', avatar:'🙂', lang:'ru' };
+
+async function saveAll(){
+  try{
+    await window.storage.set('rps:stats', JSON.stringify(stats));
+    await window.storage.set('rps:history', JSON.stringify(history));
+    await window.storage.set('rps:achievements', JSON.stringify(achievements));
+    await window.storage.set('rps:settings', JSON.stringify(settings));
+  }catch(e){ console.warn('save failed', e); }
+}
+async function loadAll(){
+  try{ const r = await window.storage.get('rps:stats'); if(r) stats = Object.assign(JSON.parse(JSON.stringify(DEFAULT_STATS)), JSON.parse(r.value)); }catch(e){}
+  try{ const r = await window.storage.get('rps:history'); if(r) history = JSON.parse(r.value); }catch(e){}
+  try{ const r = await window.storage.get('rps:achievements'); if(r) achievements = JSON.parse(r.value); }catch(e){}
+  try{ const r = await window.storage.get('rps:settings'); if(r) settings = Object.assign(settings, JSON.parse(r.value)); }catch(e){}
+}
+
+/* ---------------- Sound (Web Audio, no assets) ---------------- */
+let actx;
+function ensureAudio(){ if(!actx){ try{ actx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } }
+function beep(freq, dur, type, vol, delay){
+  if(!settings.sound || !actx) return;
+  const t0 = actx.currentTime + (delay||0);
+  const o = actx.createOscillator(); const g = actx.createGain();
+  o.type = type||'sine'; o.frequency.setValueAtTime(freq, t0);
+  g.gain.setValueAtTime(0, t0);
+  g.gain.linearRampToValueAtTime(vol||0.15, t0+0.02);
+  g.gain.exponentialRampToValueAtTime(0.001, t0+dur);
+  o.connect(g); g.connect(actx.destination);
+  o.start(t0); o.stop(t0+dur+0.02);
+}
+function soundWin(){ ensureAudio(); beep(523,.15,'triangle',.18,0); beep(659,.15,'triangle',.18,.12); beep(784,.25,'triangle',.2,.24); }
+function soundLose(){ ensureAudio(); beep(300,.2,'sawtooth',.15,0); beep(220,.3,'sawtooth',.15,.15); }
+function soundDraw(){ ensureAudio(); beep(440,.18,'sine',.15,0); beep(440,.18,'sine',.15,.12); }
+function soundClick(){ ensureAudio(); beep(700,.06,'square',.08,0); }
+function soundTick(){ ensureAudio(); beep(880,.05,'square',.06,0); }
+let musicNodes=null;
+function startMusic(){
+  if(!settings.music) return; ensureAudio(); if(musicNodes) return;
+  const o = actx.createOscillator(); const g = actx.createGain();
+  o.type='sine'; o.frequency.value=110; g.gain.value=0.02;
+  o.connect(g); g.connect(actx.destination); o.start();
+  musicNodes = {o,g};
+}
+function stopMusic(){ if(musicNodes){ try{musicNodes.o.stop();}catch(e){} musicNodes=null; } }
+
+/* ---------------- Confetti ---------------- */
+function fireConfetti(){
+  const canvas = document.createElement('canvas');
+  canvas.className='confetti-canvas';
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  const colors = ['#8b7bff','#42e8d0','#42e8b0','#f3c74e','#e17a72'];
+  const particles = Array.from({length:90}, ()=>({
+    x: canvas.width/2 + (Math.random()-0.5)*200,
+    y: canvas.height*0.35,
+    vx:(Math.random()-0.5)*10, vy:Math.random()*-6-3,
+    size:Math.random()*6+4, color:colors[Math.floor(Math.random()*colors.length)],
+    rot:Math.random()*Math.PI, vr:(Math.random()-0.5)*0.3, life:0
+  }));
+  let frame=0;
+  function tick(){
+    frame++;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles.forEach(p=>{
+      p.vy += 0.22; p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life++;
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot);
+      ctx.fillStyle = p.color; ctx.globalAlpha = Math.max(0, 1 - p.life/90);
+      ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size*0.6);
+      ctx.restore();
+    });
+    if(frame < 100){ requestAnimationFrame(tick); } else { canvas.remove(); }
+  }
+  tick();
+}
+
+/* ---------------- Game constants ---------------- */
+const CHOICES = ['rock','paper','scissors'];
+const EMOJI = {rock:'🪨', paper:'📄', scissors:'✂️'};
+const BEATS = {rock:'scissors', paper:'rock', scissors:'paper'};
+
+const MODES = [
+  {id:'classic', kind:'endless'},
+  {id:'bo3', kind:'bestof', target:3},
+  {id:'bo5', kind:'bestof', target:5},
+  {id:'bo10', kind:'bestof', target:10},
+  {id:'timed30', kind:'timed', seconds:30},
+  {id:'timed60', kind:'timed', seconds:60},
+  {id:'endless', kind:'endless'},
+  {id:'twoplayer', kind:'twoplayer'}
+];
+const DIFFS = ['easy','medium','hard','expert'];
+
+let state = {
+  mode: 'classic',
+  difficulty: 'medium',
+  matchOver:false,
+  paused:false,
+  timerRemain:0,
+  timerHandle:null,
+  roundInProgress:false,
+  p1Choice:null, p2Choice:null, twoPlayerStage:1,
+  roundStartTs:0
+};
+
+/* ---------------- AI ---------------- */
+let playerHistoryRecent = []; // for AI analysis
+function aiChoose(){
+  if(state.difficulty==='easy') return CHOICES[Math.floor(Math.random()*3)];
+  if(state.difficulty==='medium'){
+    if(Math.random()<0.5 || playerHistoryRecent.length<3) return CHOICES[Math.floor(Math.random()*3)];
+    return counterMostFrequent();
+  }
+  if(state.difficulty==='hard'){
+    if(playerHistoryRecent.length<2) return CHOICES[Math.floor(Math.random()*3)];
+    return counterMostFrequent();
+  }
+  if(state.difficulty==='expert'){
+    return expertPredict();
+  }
+  return CHOICES[Math.floor(Math.random()*3)];
+}
+function counterMostFrequent(){
+  const freq = {rock:0,paper:0,scissors:0};
+  playerHistoryRecent.slice(-8).forEach(m=>freq[m]++);
+  let best = 'rock', bestV=-1;
+  CHOICES.forEach(c=>{ if(freq[c]>bestV){bestV=freq[c]; best=c;} });
+  return counterOf(best);
+}
+function counterOf(move){
+  // returns the move that beats `move`
+  for(const c of CHOICES){ if(BEATS[c]===move) return c; }
+  return CHOICES[0];
+}
+let markov = {}; // markov[lastMove][nextMove] = count
+function expertPredict(){
+  if(playerHistoryRecent.length<2) return CHOICES[Math.floor(Math.random()*3)];
+  const last = playerHistoryRecent[playerHistoryRecent.length-1];
+  const table = markov[last];
+  if(!table) return counterMostFrequent();
+  let best=null, bestV=-1;
+  CHOICES.forEach(c=>{ if((table[c]||0) > bestV){ bestV=table[c]||0; best=c; } });
+  if(!best || bestV===0) return counterMostFrequent();
+  return counterOf(best);
+}
+function updateMarkov(prevMove, move){
+  if(prevMove==null) return;
+  markov[prevMove] = markov[prevMove] || {rock:0,paper:0,scissors:0};
+  markov[prevMove][move] = (markov[prevMove][move]||0) + 1;
+}
+
+/* ---------------- Rendering: mode/diff bars ---------------- */
+function renderModeBar(){
+  const bar = document.getElementById('modeBar');
+  bar.innerHTML='';
+  MODES.forEach(m=>{
+    const b = document.createElement('button');
+    b.className = 'mode-btn' + (state.mode===m.id?' active':'');
+    b.textContent = t('modes.'+m.id);
+    b.onclick = ()=>{ state.mode=m.id; renderModeBar(); resetRound(true); };
+    bar.appendChild(b);
+  });
+}
+function renderDiffBar(){
+  const bar = document.getElementById('diffBar');
+  bar.innerHTML='';
+  DIFFS.forEach(d=>{
+    const b = document.createElement('button');
+    b.className = 'mode-btn' + (state.difficulty===d?' active':'');
+    b.textContent = t('diffs.'+d);
+    b.onclick = ()=>{ state.difficulty=d; renderDiffBar(); };
+    bar.appendChild(b);
+  });
+}
+
+/* ---------------- Achievements ---------------- */
+const ACH_LIST = [
+  {id:'first', ico:'🥇'}, {id:'streak5', ico:'🔥'}, {id:'streak10', ico:'👑'},
+  {id:'games100', ico:'💯'}, {id:'beat50', ico:'🎯'}
+];
+function renderAchievements(){
+  const grid = document.getElementById('achGrid');
+  grid.innerHTML='';
+  ACH_LIST.forEach(a=>{
+    const div = document.createElement('div');
+    div.className = 'ach' + (achievements[a.id] ? ' unlocked' : '');
+    div.innerHTML = `<span class="ico">${a.ico}</span>${t('achNames.'+a.id)}`;
+    grid.appendChild(div);
+  });
+}
+function checkAchievements(){
+  const newly = [];
+  if(stats.currentStreak>=1 && !achievements.first){ achievements.first=true; newly.push('first'); }
+  if(stats.currentStreak>=5 && !achievements.streak5){ achievements.streak5=true; newly.push('streak5'); }
+  if(stats.currentStreak>=10 && !achievements.streak10){ achievements.streak10=true; newly.push('streak10'); }
+  if(stats.total>=100 && !achievements.games100){ achievements.games100=true; newly.push('games100'); }
+  if(stats.playerScore>=50 && !achievements.beat50){ achievements.beat50=true; newly.push('beat50'); }
+  if(newly.length){
+    renderAchievements();
+    newly.forEach((id,i)=> setTimeout(()=> showToast('🏅 '+t('achNames.'+id)), i*900));
+  }
+}
+
+/* ---------------- Toast ---------------- */
+let toastTimer=null;
+function showToast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=> el.classList.remove('show'), 2600);
+}
+
+/* ---------------- Charts ---------------- */
+function drawWLChart(){
+  const canvas = document.getElementById('wlChart');
+  const dpr = window.devicePixelRatio||1;
+  const w = canvas.clientWidth||300, h=120;
+  canvas.width = w*dpr; canvas.height=h*dpr;
+  const ctx = canvas.getContext('2d'); ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,w,h);
+  const data = stats.wlSeries.slice(-20);
+  if(data.length===0){
+    ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--text-dim');
+    ctx.font = '12px Inter'; ctx.fillText(lang==='ru'?'Пока нет данных':(lang==='en'?'No data yet':'Hozircha maʼlumot yoʻq'), 8, h/2);
+    return;
+  }
+  const barW = w/20;
+  data.forEach((v,i)=>{
+    const x = i*barW + (20-data.length)*barW;
+    let color, barH;
+    if(v===1){ color='#42e8b0'; barH=h*0.42; ctx.fillStyle=color; ctx.fillRect(x+3,h/2-barH,barW-6,barH); }
+    else if(v===0){ color='#ff5f7a'; barH=h*0.42; ctx.fillStyle=color; ctx.fillRect(x+3,h/2,barW-6,barH); }
+    else{ color='#f3c74e'; ctx.fillStyle=color; ctx.fillRect(x+3,h/2-4,barW-6,8); }
+  });
+  ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--glass-border');
+  ctx.beginPath(); ctx.moveTo(0,h/2); ctx.lineTo(w,h/2); ctx.stroke();
+}
+
+function renderMoveBars(containerId, moves, colorMap){
+  const container = document.getElementById(containerId);
+  container.innerHTML='';
+  const total = moves.rock+moves.paper+moves.scissors || 1;
+  CHOICES.forEach(c=>{
+    const pct = Math.round((moves[c]/total)*100);
+    const row = document.createElement('div'); row.className='mini-bar-row';
+    row.innerHTML = `<span class="ico">${EMOJI[c]}</span><div class="mini-bar-track"><div style="width:${pct}%;background:${colorMap[c]}"></div></div><span class="pct">${pct}%</span>`;
+    container.appendChild(row);
+  });
+}
+
+/* ---------------- History ---------------- */
+function renderHistory(){
+  const list = document.getElementById('historyList');
+  list.innerHTML='';
+  const recent = history.slice(-20).reverse();
+  if(recent.length===0){
+    list.innerHTML = `<div style="font-size:12px;color:var(--text-dim);text-align:center;padding:10px 0;">${lang==='ru'?'Сыграйте первую игру!':(lang==='en'?'Play your first game!':'Birinchi oʻyiningizni oʻynang!')}</div>`;
+    return;
+  }
+  recent.forEach(h=>{
+    const div = document.createElement('div'); div.className='hist-item';
+    const badgeClass = h.result==='win'?'win':(h.result==='lose'?'lose':'draw');
+    const badgeText = h.result==='win'?(lang==='ru'?'ПОБЕДА':(lang==='en'?'WIN':'GʻALABA')) : h.result==='lose'?(lang==='ru'?'ПРОИГРЫШ':(lang==='en'?'LOSS':'YUTQAZDI')) : (lang==='ru'?'НИЧЬЯ':(lang==='en'?'DRAW':'DURRANG'));
+    div.innerHTML = `<span><span class="em">${EMOJI[h.p]}</span> vs <span class="em">${EMOJI[h.c]}</span></span><span class="hist-badge ${badgeClass}">${badgeText}</span>`;
+    list.appendChild(div);
+  });
+}
+
+/* ---------------- Core round logic ---------------- */
+function winnerOf(a,b){
+  if(a===b) return 'draw';
+  return BEATS[a]===b ? 'a' : 'b';
+}
+
+function resetRound(fullReset){
+  clearInterval(state.timerHandle); state.timerHandle=null;
+  state.matchOver=false; state.paused=false;
+  state.p1Choice=null; state.p2Choice=null; state.twoPlayerStage=1;
+  document.getElementById('playerStage').textContent='❔';
+  document.getElementById('computerStage').textContent='❔';
+  document.getElementById('playerStage').className='stage';
+  document.getElementById('computerStage').className='stage';
+  document.getElementById('resultBanner').className='result-banner';
+  document.getElementById('resultBanner').textContent='';
+  document.getElementById('countdown').style.display='none';
+  document.getElementById('gamePanel').classList.remove('shake');
+  enableChoices(true);
+  const modeObj = MODES.find(m=>m.id===state.mode);
+  const timerNote = document.getElementById('timerNote');
+  const modeNote = document.getElementById('modeNote');
+  document.getElementById('playerStageName').textContent = state.mode==='twoplayer' ? 'P1' : t('you');
+  if(fullReset){
+    stats.playerScore=0; stats.computerScore=0;
+  }
+  if(modeObj.kind==='bestof'){
+    modeNote.textContent = (lang==='ru'?'До ':(lang==='en'?'First to ':'Gacha ')) + modeObj.target + (lang==='ru'?' побед':(lang==='en'?' wins':' gʻalaba'));
+    timerNote.style.display='none';
+  } else if(modeObj.kind==='timed'){
+    modeNote.textContent='';
+    timerNote.style.display='block';
+    state.timerRemain = modeObj.seconds;
+    timerNote.textContent = state.timerRemain+'s';
+    startModeTimer();
+  } else if(modeObj.kind==='twoplayer'){
+    modeNote.textContent = t('p1turn');
+    timerNote.style.display='none';
+  } else {
+    modeNote.textContent='';
+    timerNote.style.display='none';
+  }
+  updateScoreDisplay();
+}
+function startModeTimer(){
+  const timerNote = document.getElementById('timerNote');
+  state.timerHandle = setInterval(()=>{
+    if(state.paused) return;
+    state.timerRemain--;
+    timerNote.textContent = state.timerRemain+'s';
+    if(state.timerRemain<=0){
+      clearInterval(state.timerHandle);
+      endMatch(t('modeEndTimed'));
+    }
+  },1000);
+}
+function enableChoices(en){
+  document.querySelectorAll('.choice-btn').forEach(b=> b.disabled = !en);
+}
+function updateScoreDisplay(){
+  document.getElementById('playerScore').textContent = stats.playerScore;
+  document.getElementById('computerScore').textContent = stats.computerScore;
+}
+
+function handleChoice(choice){
+  if(state.matchOver || state.roundInProgress || state.paused) return;
+  const modeObj = MODES.find(m=>m.id===state.mode);
+  soundClick();
+  if(modeObj.kind==='twoplayer'){
+    if(state.twoPlayerStage===1){
+      state.p1Choice = choice;
+      state.twoPlayerStage=2;
+      document.getElementById('playerStage').textContent='🙈';
+      document.getElementById('modeNote').textContent = t('p2turn');
+      return;
+    } else {
+      state.p2Choice = choice;
+      playTwoPlayerRound();
+      return;
+    }
+  }
+  document.querySelectorAll('.choice-btn').forEach(b=> b.classList.toggle('selected', b.dataset.choice===choice));
+  playerHistoryRecent.push(choice);
+  playRound(choice);
+}
+
+function playRound(playerChoice){
+  state.roundInProgress = true;
+  enableChoices(false);
+  state.roundStartTs = performance.now();
+  const cd = document.getElementById('countdown');
+  const pStage = document.getElementById('playerStage');
+  const cStage = document.getElementById('computerStage');
+  pStage.textContent='❔'; cStage.textContent='❔';
+  pStage.className='stage'; cStage.className='stage thinking';
+  cd.style.display='block';
+  let n=3; cd.textContent=n; soundTick();
+  const iv = setInterval(()=>{
+    n--;
+    if(n>0){ cd.textContent=n; soundTick(); }
+    else {
+      clearInterval(iv);
+      cd.style.display='none';
+      revealRound(playerChoice);
+    }
+  },500);
+}
+
+function revealRound(playerChoice){
+  const cpuChoice = aiChoose();
+  const prevMove = playerHistoryRecent.length>1 ? playerHistoryRecent[playerHistoryRecent.length-2] : null;
+  updateMarkov(prevMove, playerChoice);
+
+  const pStage = document.getElementById('playerStage');
+  const cStage = document.getElementById('computerStage');
+  pStage.textContent = EMOJI[playerChoice];
+  cStage.textContent = EMOJI[cpuChoice];
+  pStage.className='stage reveal'; cStage.className='stage reveal';
+
+  const outcome = winnerOf(playerChoice, cpuChoice);
+  const elapsed = performance.now() - state.roundStartTs;
+  stats.totalTimeMs += elapsed; stats.roundsTimed++;
+
+  stats.total++;
+  stats.playerMoves[playerChoice]++; stats.cpuMoves[cpuChoice]++;
+
+  let result;
+  if(outcome==='draw'){ result='draw'; stats.draws++; stats.wlSeries.push(0.5); stats.currentStreak=0; stats.currentLoseStreak=0; soundDraw(); }
+  else if(outcome==='a'){ result='win'; stats.playerScore++; stats.wlSeries.push(1); stats.currentStreak++; stats.currentLoseStreak=0; stats.bestStreak=Math.max(stats.bestStreak, stats.currentStreak); pStage.classList.add('winner-glow'); cStage.classList.add('loser-dim'); soundWin(); fireConfetti(); }
+  else { result='lose'; stats.computerScore++; stats.wlSeries.push(0); stats.currentLoseStreak++; stats.currentStreak=0; cStage.classList.add('winner-glow'); pStage.classList.add('loser-dim'); soundLose(); document.getElementById('gamePanel').classList.add('shake'); setTimeout(()=>document.getElementById('gamePanel').classList.remove('shake'),450); }
+
+  if(stats.wlSeries.length>200) stats.wlSeries = stats.wlSeries.slice(-200);
+  history.push({p:playerChoice, c:cpuChoice, result, ts:Date.now()});
+  if(history.length>200) history = history.slice(-200);
+
+  const banner = document.getElementById('resultBanner');
+  banner.textContent = result==='win'?t('win'):(result==='lose'?t('lose'):t('draw'));
+  banner.className = 'result-banner show '+result;
+
+  updateScoreDisplay();
+  checkAchievements();
+  refreshUI();
+  saveAll();
+
+  state.roundInProgress=false;
+  document.getElementById('playerStageName').textContent = t('you');
+
+  const modeObj = MODES.find(m=>m.id===state.mode);
+  if(modeObj.kind==='bestof'){
+    if(stats.playerScore>=modeObj.target || stats.computerScore>=modeObj.target){
+      const winnerName = stats.playerScore>modeObj.target-1 && stats.playerScore>=modeObj.target ? t('you') : t('cpu');
+      setTimeout(()=> endMatch(t('modeEndBo')+winnerName), 700);
+      return;
+    }
+  }
+  if(modeObj.kind!=='timed'){
+    setTimeout(()=>{ enableChoices(true); document.querySelectorAll('.choice-btn').forEach(b=>b.classList.remove('selected')); }, 900);
+  } else {
+    setTimeout(()=>{ if(state.timerRemain>0){ enableChoices(true); document.querySelectorAll('.choice-btn').forEach(b=>b.classList.remove('selected')); } }, 900);
+  }
+}
+
+function playTwoPlayerRound(){
+  state.roundInProgress=true; enableChoices(false);
+  const pStage = document.getElementById('playerStage');
+  const cStage = document.getElementById('computerStage');
+  document.getElementById('playerStageName').textContent='P1';
+  pStage.textContent = EMOJI[state.p1Choice];
+  cStage.textContent = EMOJI[state.p2Choice];
+  pStage.className='stage reveal'; cStage.className='stage reveal';
+  const outcome = winnerOf(state.p1Choice, state.p2Choice);
+  stats.total++;
+  let result;
+  const banner = document.getElementById('resultBanner');
+  if(outcome==='draw'){ result='draw'; stats.draws++; soundDraw(); banner.textContent=t('draw'); }
+  else if(outcome==='a'){ result='win'; stats.playerScore++; pStage.classList.add('winner-glow'); cStage.classList.add('loser-dim'); soundWin(); fireConfetti(); banner.textContent='P1 🎉'; }
+  else { result='lose'; stats.computerScore++; cStage.classList.add('winner-glow'); pStage.classList.add('loser-dim'); soundLose(); banner.textContent='P2 🎉'; }
+  banner.className='result-banner show '+result;
+  updateScoreDisplay();
+  history.push({p:state.p1Choice, c:state.p2Choice, result, ts:Date.now()});
+  saveAll(); renderHistory();
+  state.roundInProgress=false;
+  setTimeout(()=>{
+    state.p1Choice=null; state.p2Choice=null; state.twoPlayerStage=1;
+    pStage.textContent='❔'; cStage.textContent='❔'; pStage.className='stage'; cStage.className='stage';
+    document.getElementById('modeNote').textContent=t('p1turn');
+    document.getElementById('playerStageName').textContent='P1';
+    banner.className='result-banner';
+    enableChoices(true);
+  }, 1200);
+}
+
+function endMatch(msg){
+  state.matchOver=true;
+  enableChoices(false);
+  clearInterval(state.timerHandle);
+  const banner = document.getElementById('resultBanner');
+  banner.textContent = msg;
+  banner.className = 'result-banner show draw';
+  showToast(msg);
+}
+
+/* ---------------- Refresh side stats ---------------- */
+function refreshUI(){
+  document.getElementById('statTotal').textContent = stats.total;
+  const winPct = stats.total ? Math.round((stats.playerScore/stats.total)*100) : 0;
+  document.getElementById('statWinPct').textContent = winPct+'%';
+  document.getElementById('statStreak').textContent = stats.currentStreak;
+  document.getElementById('statLoseStreak').textContent = stats.currentLoseStreak;
+  document.getElementById('statBest').textContent = stats.bestStreak;
+  document.getElementById('statDraws').textContent = stats.draws;
+  const avgS = stats.roundsTimed ? (stats.totalTimeMs/stats.roundsTimed/1000).toFixed(1) : '0';
+  document.getElementById('statAvgTime').textContent = avgS+'s';
+  let favMove = t('favNone');
+  const pm = stats.playerMoves;
+  if(pm.rock+pm.paper+pm.scissors>0){
+    const maxC = Math.max(pm.rock,pm.paper,pm.scissors);
+    if(maxC===pm.rock) favMove=EMOJI.rock+' '+t('diffs.easy')==='' ? EMOJI.rock : EMOJI.rock;
+    favMove = maxC===pm.rock?EMOJI.rock:(maxC===pm.paper?EMOJI.paper:EMOJI.scissors);
+  }
+  document.getElementById('statFav').textContent = favMove;
+  renderMoveBars('playerMoveBars', stats.playerMoves, {rock:'var(--accent-rock)',paper:'var(--accent-paper)',scissors:'var(--accent-scissors)'});
+  renderMoveBars('cpuMoveBars', stats.cpuMoves, {rock:'var(--accent-rock)',paper:'var(--accent-paper)',scissors:'var(--accent-scissors)'});
+  renderHistory();
+  renderAchievements();
+  drawWLChart();
+}
+
+/* ---------------- Settings / Theme / Avatar ---------------- */
+const AVATARS = ['🙂','😎','🤖','🐱','🐶','🦊','🐼','👾','🧙','🥷','👽','🦄'];
+function renderAvatarGrid(){
+  const grid = document.getElementById('avatarGrid');
+  grid.innerHTML='';
+  AVATARS.forEach(a=>{
+    const div = document.createElement('div');
+    div.className = 'avatar-opt' + (settings.avatar===a?' sel':'');
+    div.textContent = a;
+    div.onclick = ()=>{ settings.avatar=a; renderAvatarGrid(); applyProfile(); saveAll(); };
+    grid.appendChild(div);
+  });
+}
+function applyProfile(){
+  document.getElementById('avatarDisplay').textContent = settings.avatar;
+  document.getElementById('nameDisplay').textContent = settings.name || 'Игрок';
+}
+function applyTheme(){
+  document.body.setAttribute('data-theme', settings.theme);
+  document.getElementById('themeToggle').textContent = settings.theme==='dark' ? '🌙' : '☀️';
+  document.getElementById('themeSwitch').checked = settings.theme==='dark';
+  drawWLChart();
+}
+
+/* ---------------- Modals ---------------- */
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('[data-close]').forEach(b=> b.onclick = ()=> closeModal(b.getAttribute('data-close')));
+document.querySelectorAll('.modal-overlay').forEach(ov=> ov.addEventListener('click', e=>{ if(e.target===ov) closeModal(ov.id); }));
+
+/* ---------------- Wire up controls ---------------- */
+document.querySelectorAll('.choice-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=> handleChoice(btn.dataset.choice));
+});
+document.addEventListener('keydown', e=>{
+  if(e.key==='1') handleChoice('rock');
+  else if(e.key==='2') handleChoice('paper');
+  else if(e.key==='3') handleChoice('scissors');
+});
+
+document.getElementById('newGameBtn').onclick = ()=>{ resetRound(true); };
+document.getElementById('resetStatsBtn').onclick = ()=>{
+  stats = JSON.parse(JSON.stringify(DEFAULT_STATS));
+  history = [];
+  achievements = { first:false, streak5:false, streak10:false, games100:false, beat50:false };
+  saveAll(); refreshUI(); updateScoreDisplay(); showToast(t('reset_done'));
+};
+document.getElementById('pauseBtn').onclick = function(){
+  state.paused = !state.paused;
+  this.textContent = state.paused ? '▶ '+ (lang==='ru'?'Продолжить':(lang==='en'?'Resume':'Davom')) : t('pause');
+  if(state.paused){ enableChoices(false); showToast(t('paused')); } else { if(!state.matchOver && !state.roundInProgress) enableChoices(true); }
+};
+document.getElementById('shareBtn').onclick = async ()=>{
+  const text = `${t('title')} — ${settings.name}: ${stats.playerScore} : ${stats.computerScore} 🎮\n${lang==='ru'?'Побед':'Wins'}: ${stats.playerScore} | ${lang==='ru'?'Серия':'Streak'}: ${stats.bestStreak}`;
+  try{
+    if(navigator.share){ await navigator.share({text}); }
+    else { await navigator.clipboard.writeText(text); showToast(t('copied')); }
+  }catch(e){ try{ await navigator.clipboard.writeText(text); showToast(t('copied')); }catch(e2){} }
+};
+document.getElementById('rulesBtn').onclick = ()=> openModal('rulesOverlay');
+document.getElementById('settingsBtn').onclick = ()=>{
+  document.getElementById('nameInput').value = settings.name;
+  document.getElementById('soundSwitch').checked = settings.sound;
+  document.getElementById('musicSwitch').checked = settings.music;
+  document.getElementById('tipsSwitch').checked = settings.tips;
+  renderAvatarGrid();
+  openModal('settingsOverlay');
+};
+document.getElementById('playerChip').onclick = ()=> document.getElementById('settingsBtn').click();
+
+document.getElementById('themeToggle').onclick = ()=>{
+  settings.theme = settings.theme==='dark' ? 'light' : 'dark';
+  applyTheme(); saveAll();
+};
+document.getElementById('themeSwitch').onchange = function(){
+  settings.theme = this.checked ? 'dark' : 'light'; applyTheme(); saveAll();
+};
+document.getElementById('soundToggle').onclick = function(){
+  settings.sound = !settings.sound;
+  this.textContent = settings.sound ? '🔊' : '🔇';
+  document.getElementById('soundSwitch').checked = settings.sound;
+  saveAll();
+};
+document.getElementById('soundSwitch').onchange = function(){
+  settings.sound = this.checked;
+  document.getElementById('soundToggle').textContent = settings.sound ? '🔊' : '🔇';
+  saveAll();
+};
+document.getElementById('musicSwitch').onchange = function(){
+  settings.music = this.checked;
+  if(settings.music) startMusic(); else stopMusic();
+  saveAll();
+};
+document.getElementById('tipsSwitch').onchange = function(){ settings.tips = this.checked; saveAll(); };
+document.getElementById('nameInput').addEventListener('input', function(){
+  settings.name = this.value.slice(0,16) || 'Игрок';
+  applyProfile(); saveAll();
+});
+document.getElementById('fullscreenToggle').onclick = ()=>{
+  if(!document.fullscreenElement){ document.documentElement.requestFullscreen().catch(()=>{}); }
+  else{ document.exitFullscreen().catch(()=>{}); }
+};
+document.getElementById('langSelect').onchange = function(){
+  lang = this.value; settings.lang = lang; saveAll(); applyStaticI18n();
+};
+
+/* ---------------- Beginner tips ---------------- */
+function maybeShowTip(){
+  if(!settings.tips) return;
+  const tips = [t('tip1'), t('tip2'), t('tip3')];
+  if(stats.total>0 && stats.total%6===0){
+    showToast(tips[Math.floor(Math.random()*tips.length)]);
+  }
+}
+const origRevealRound = revealRound;
+revealRound = function(pc){ origRevealRound(pc); maybeShowTip(); };
+
+/* ---------------- Init ---------------- */
+async function init(){
+  await loadAll();
+  lang = settings.lang || 'ru';
+  document.getElementById('langSelect').value = lang;
+  applyTheme();
+  applyProfile();
+  applyStaticI18n();
+  resetRound(false);
+  refreshUI();
+  updateScoreDisplay();
+  window.addEventListener('resize', drawWLChart);
+}
+init();
+
+})();
+</script>
+</body>
+</html>
